@@ -3,6 +3,9 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+# MUCH CREDIT TO https://github.com/DylanHNicolay/MatchCraft,
+# from which most of the bot startup and Docker code was derived
+
 # Load environment variables from .env file
 load_dotenv()
 

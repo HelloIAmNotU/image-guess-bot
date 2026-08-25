@@ -5,6 +5,7 @@ from discord.ext import commands
 from PIL import Image
 import requests
 import io
+import time
 
 class Game(commands.Cog):
 
@@ -44,7 +45,34 @@ class Game(commands.Cog):
             image_binary.seek(0)
             return await interaction.response.send_message(file=discord.File(fp=image_binary,filename='image.jpeg'))
     
-            
+    @app_commands.command(name="start",description="Start a 10-round game")
+    async def start(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        for i in range(10):
+            choice = random.choice(list(self.images.keys()))
+            response = requests.get(self.images[choice])
+            image = Image.open(io.BytesIO(response.content))
+    
+            with io.BytesIO() as image_binary:
+                image.save(image_binary,"JPEG")
+                image_binary.seek(0)
+                await interaction.followup.send(content="Who is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
+
+            def check_user(m: discord.Message):
+                return m.author == interaction.user and m.channel == interaction.channel
+
+            while True:
+                user_reply = await self.bot.wait_for('message',check=check_user,timeout=30)
+                if user_reply.content.lower() == choice:
+                    await interaction.followup.send(content="Correct!")
+                    time.sleep(0.5)     # prevents spamming
+                    break
+                else:
+                    await interaction.followup.send(content=f"Incorrect. Try again!")
+                    time.sleep(0.5)     # prevents spamming
+
+        return await interaction.followup.send(content=f"Congratulations {interaction.user.mention}! You finished!")
+
             
 """
     @app_commands.command(name="setup", description="Sets up the bot for future game")

@@ -21,13 +21,14 @@ class Game(commands.Cog):
 
         try:
             async for message in channel.history(limit=500):
-                if len(message.attachments) != 1:
+                if len(message.attachments) < 1:
                     continue
-                if not message.attachments[0].filename.lower().endswith(".jpeg"):
-                    continue
-                answer = message.attachments[0].filename.lower().removesuffix(".jpeg")
-                self.images[answer] = message.attachments[0].url
-                count += 1
+                for i in range(len(message.attachments)):
+                    if not message.attachments[i].filename.lower().endswith(".jpeg"):
+                        continue
+                    answer = message.attachments[i].filename.lower().removesuffix(".jpeg")
+                    self.images[answer] = message.attachments[i].url
+                    count += 1
             return await interaction.followup.send(content=f"{count} images added!")
         except:
             return await interaction.followup.send(content="Command failed.")

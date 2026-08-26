@@ -91,7 +91,7 @@ class Game(commands.Cog):
                             break
                     if user_reply.content.lower() == choice:
                         mention = user_reply.author.mention
-                        await interaction.followup.send(content=f"Correct {mention}!")
+                        await interaction.followup.send(content=f"{mention} got it right!")
                         if (mention not in list(correct.keys())):
                             correct[mention] = 1
                         else:

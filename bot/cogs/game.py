@@ -99,10 +99,15 @@ class Game(commands.Cog):
                         time.sleep(1)  
                         break
 
-        self.game = False
-        msg = f""
-        for mention in list(correct.keys()):
+        sorted_correct = []
+        for key in sorted(correct, key=correct.get, reverse=True):
+            sorted_correct.append(key)
+
+        msg = ""
+        for mention in sorted_correct:
             msg += (mention + f": {correct[mention]} correct\n")
+
+        self.game = False
         return await interaction.followup.send(content=msg)
 
     

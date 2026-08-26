@@ -81,9 +81,14 @@ class Game(commands.Cog):
                     await interaction.channel.send(content=f"Question timed out. The answer was {choice}.")
                     break
                 else:
-                    if user_reply.author.guild_permissions.administrator and user_reply.content.lower() == "end":
-                        self.game = True
-                        return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
+                    if user_reply.author.guild_permissions.administrator:
+                        if user_reply.content.lower() == "end":
+                            self.game = True
+                            return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
+                        elif user_reply.content.lower() == "next":
+                            await interaction.followup.send(content=f"Going next. The answer was {choice}.")
+                            time.sleep(1)
+                            break
                     if user_reply.content.lower() == choice:
                         mention = user_reply.author.mention
                         await interaction.followup.send(content=f"Correct {mention}!")

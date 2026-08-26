@@ -10,6 +10,7 @@ class Game(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.images = {}
+        self.game = False
 
     @app_commands.command(name="setchannel",description="ADMIN ONLY: Sets the image-containing channel")
     async def setchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
@@ -27,12 +28,14 @@ class Game(commands.Cog):
                     if not message.attachments[i].filename.lower().endswith(".jpeg"):
                         continue
                     answer = message.attachments[i].filename.lower().removesuffix(".jpeg")
+                    answer = answer.replace("_"," ")
                     self.images[answer] = message.attachments[i].url
                     count += 1
             return await interaction.followup.send(content=f"{count} images added!")
         except:
             return await interaction.followup.send(content="Command failed.")
 
+    """
     @app_commands.command(name="test",description="test command")
     async def test(self, interaction: discord.Interaction):
         choice = random.choice(list(self.images.keys()))
@@ -43,11 +46,16 @@ class Game(commands.Cog):
             image.save(image_binary,"JPEG")
             image_binary.seek(0)
             return await interaction.response.send_message(file=discord.File(fp=image_binary,filename='image.jpeg'))
-    
-    @app_commands.command(name="start",description="Start a 10-round game")
-    async def start(self, interaction: discord.Interaction):
+    """
+
+    @app_commands.command(name="start",description="Starts the game")
+    async def start(self, interaction: discord.Interaction, rounds: int):
+        if self.game:
+            return await interaction.response.send_message(content="A game is ongoing.",ephemeral=True)
         await interaction.response.defer()
-        for i in range(10):
+        correct = {}
+        self.game = True
+        for i in range(rounds):
             choice = random.choice(list(self.images.keys()))
             response = requests.get(self.images[choice])
             image = Image.open(io.BytesIO(response.content))
@@ -57,20 +65,26 @@ class Game(commands.Cog):
                 image_binary.seek(0)
                 await interaction.followup.send(content="Who is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
 
-            def check_user(m: discord.Message):
-                return m.author == interaction.user and m.channel == interaction.channel
-
             while True:
-                user_reply = await self.bot.wait_for('message',check=check_user,timeout=30)
+                user_reply = await self.bot.wait_for('message')
+                if user_reply.content.lower() == "end" and user_reply.author.guild_permissions.administrator:
+                    self.game = False
+                    return await interaction.followup.send(content="Game terminated.")
                 if user_reply.content.lower() == choice:
-                    await interaction.followup.send(content="Correct!")
-                    time.sleep(0.5)     # prevents spamming
+                    mention = user_reply.author.mention
+                    await interaction.followup.send(content=f"Correct {mention}!")
+                    if (mention not in list(correct.keys())):
+                        correct[mention] = 1
+                    else:
+                        correct[mention] += 1
+                    time.sleep(1)  
                     break
-                else:
-                    await interaction.followup.send(content=f"Incorrect. Try again!")
-                    time.sleep(0.5)     # prevents spamming
 
-        return await interaction.followup.send(content=f"Congratulations {interaction.user.mention}! You finished!")
+        self.game = False
+        msg = f""
+        for mention in list(correct.keys()):
+            msg += (mention + f": {correct[mention]} correct\n")
+        return await interaction.followup.send(content=msg)
 
     
 async def setup(bot: commands.Bot) -> None:

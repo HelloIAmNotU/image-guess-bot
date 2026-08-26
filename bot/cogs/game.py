@@ -10,7 +10,7 @@ class Game(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.images = {}
-        self.game = False
+        self.game = True
 
     @app_commands.command(name="setchannel",description="ADMIN ONLY: Sets the image-containing channel")
     async def setchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
@@ -48,10 +48,20 @@ class Game(commands.Cog):
             return await interaction.response.send_message(file=discord.File(fp=image_binary,filename='image.jpeg'))
     """
 
-    @app_commands.command(name="start",description="Starts the game")
+    @app_commands.command(name="ready",description="ADMIN ONLY: Allows the bot to start a game")
+    async def ready(self, interaction: discord.Interaction):
+        self.game = False
+        return await interaction.response.send_message(content="Success!",ephemeral=True)
+
+    @app_commands.command(name="stop",description="ADMIN ONLY: Stops the bot from starting a game")
+    async def stop(self, interaction: discord.Interaction):
+        self.game = True
+        return await interaction.response.send_message(content="Success!",ephemeral=True)
+
+    @app_commands.command(name="start",description="Starts the game. Admin can type 'end' to force stop")
     async def start(self, interaction: discord.Interaction, rounds: int):
         if self.game:
-            return await interaction.response.send_message(content="A game is ongoing.",ephemeral=True)
+            return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
         await interaction.response.defer()
         correct = {}
         self.game = True
@@ -67,9 +77,9 @@ class Game(commands.Cog):
 
             while True:
                 user_reply = await self.bot.wait_for('message')
-                if user_reply.content.lower() == "end" and user_reply.author.guild_permissions.administrator:
-                    self.game = False
-                    return await interaction.followup.send(content="Game terminated.")
+                if user_reply.author.guild_permissions.administrator and user_reply.content.lower() == "end":
+                    self.game = True
+                    return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
                 if user_reply.content.lower() == choice:
                     mention = user_reply.author.mention
                     await interaction.followup.send(content=f"Correct {mention}!")

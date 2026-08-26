@@ -1,5 +1,5 @@
 import discord
-import random, io, time
+import random, io, time, asyncio
 from discord import app_commands
 from discord.ext import commands
 from PIL import Image
@@ -27,8 +27,7 @@ class Game(commands.Cog):
                 for i in range(len(message.attachments)):
                     if not message.attachments[i].filename.lower().endswith(".jpeg"):
                         continue
-                    answer = message.attachments[i].filename.lower().removesuffix(".jpeg")
-                    answer = answer.replace("_"," ")
+                    answer = message.attachments[i].filename.lower().replace("_"," ").removesuffix(".jpeg")
                     self.images[answer] = message.attachments[i].url
                     count += 1
             return await interaction.followup.send(content=f"{count} images added!")
@@ -73,22 +72,27 @@ class Game(commands.Cog):
             with io.BytesIO() as image_binary:
                 image.save(image_binary,"JPEG")
                 image_binary.seek(0)
-                await interaction.followup.send(content="Who is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
+                await interaction.followup.send(content="What is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
 
             while True:
-                user_reply = await self.bot.wait_for('message')
-                if user_reply.author.guild_permissions.administrator and user_reply.content.lower() == "end":
-                    self.game = True
-                    return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
-                if user_reply.content.lower() == choice:
-                    mention = user_reply.author.mention
-                    await interaction.followup.send(content=f"Correct {mention}!")
-                    if (mention not in list(correct.keys())):
-                        correct[mention] = 1
-                    else:
-                        correct[mention] += 1
-                    time.sleep(1)  
+                try:
+                    user_reply = await self.bot.wait_for('message',timeout=10)
+                except asyncio.TimeoutError:
+                    await interaction.channel.send(content=f"Question timed out. The answer was {choice}.")
                     break
+                else:
+                    if user_reply.author.guild_permissions.administrator and user_reply.content.lower() == "end":
+                        self.game = True
+                        return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
+                    if user_reply.content.lower() == choice:
+                        mention = user_reply.author.mention
+                        await interaction.followup.send(content=f"Correct {mention}!")
+                        if (mention not in list(correct.keys())):
+                            correct[mention] = 1
+                        else:
+                            correct[mention] += 1
+                        time.sleep(1)  
+                        break
 
         self.game = False
         msg = f""

@@ -56,24 +56,24 @@ class Collect(commands.Cog):
     @app_commands.command(name="drop",description="A drop of 3 characters!")
     async def drop(self, interaction: discord.Interaction):
 
-        identifier = str(interaction.user.id) + "," + str(interaction.guild_id)
-        await db.connect()
-        retval = await db.execute("SELECT dropped_time FROM timeout WHERE id = $1;",identifier)
         lastDropped = 0
+        now = time.time_ns()
+
+        await db.connect()
+        retval = await db.execute("SELECT dropped_time FROM timeout WHERE user_id = $1;",interaction.user.id)
         if len(retval) == 0:
-            await db.execute("INSERT INTO timeout (id, dropped_time) VALUES ($1, $2);",identifier,time.time_ns())
+            await db.execute("INSERT INTO timeout (user_id, dropped_time) VALUES ($1, $2);",interaction.user.id,now)
         else:
             lastDropped = retval[0]['dropped_time']
+        await db.close()
 
-        now = time.time_ns()
-        seconds = (now-lastDropped)/1000000000
+        timeRemaining = 43200-((now-lastDropped)/1000000000)
 
-        if seconds < 43200:
-            timeRemaining = 43200-seconds
-            await db.close()
-            return await interaction.response.send_message(content=f"You may drop again in {timeRemaining//3600} hours {round((timeRemaining%3600)//60)} minutes {round(timeRemaining%3600%60)} seconds.",ephemeral=True)
+        if timeRemaining > 0:
+            return await interaction.response.send_message(content=f"You may drop again in {int(timeRemaining//3600)} hours {int((timeRemaining%3600)//60)} minutes {int(timeRemaining%3600%60)} seconds.",ephemeral=True)
         else:
-            await db.execute("UPDATE timeout SET dropped_time = $1 WHERE id = $2;",now,identifier)
+            await db.connect()
+            await db.execute("UPDATE timeout SET dropped_time = $1 WHERE user_id = $2;",now,interaction.user.id)
             await db.close()
 
         await interaction.response.defer()
@@ -99,8 +99,9 @@ class Collect(commands.Cog):
             imggroup.save(image_binary, "JPEG")
             image_binary.seek(0)
             choices = [ name1, name2, name3 ]
-            view = Buttons(collect=self, names=choices, user=interaction.user)
-            return await interaction.followup.send(file=discord.File(fp=image_binary, filename='image.png'), view=view)
+            msg = await interaction.followup.send(content=f"{interaction.user.mention}, your drop will be ready soon!")
+            view = Buttons(collect=self, names=choices, user=interaction.user, msg=msg)
+            return await msg.edit(content=f"{interaction.user.mention}, here is your drop!",attachments=[discord.File(fp=image_binary, filename='image.png')], view=view)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Collect(bot))

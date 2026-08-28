@@ -9,6 +9,6 @@ CREATE TABLE cardcounts (
 );
 
 CREATE TABLE timeout (
-    id TEXT PRIMARY KEY,
+    user_id BIGINT PRIMARY KEY,
     dropped_time BIGINT
 );

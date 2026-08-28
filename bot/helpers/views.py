@@ -4,16 +4,19 @@ import random
 from helpers.card import Card
 
 class Buttons(discord.ui.View):
-    def __init__(self, collect, names: list[str], timeout=45):
+    def __init__(self, collect, names: list[str], user: discord.Member, timeout=45):
         self.names = names
         self.collect = collect
+        self.user = user
         super().__init__(timeout=timeout)
 
     async def clicked(self, interaction: discord.Interaction, index: int):
+        if interaction.user != self.user:
+            return await interaction.response.send_message(content="This is not your drop.",ephemeral=True)
         curid = await self.collect.cardcount(self.names[index])
-        qualityrand = random.randrange(0,200)
-        qualityrand = 4 if qualityrand == 0 else 3 if qualityrand <= 17 else 2 if qualityrand <= 33 else 1 if qualityrand <= 50 else 0
-        card = Card(self.names[index].capitalize(),random.randrange(0,5),qualityrand,curid+1)
+        edition = random.randrange(0,200)
+        editionrand = 4 if edition == 0 else 3 if edition <= 17 else 2 if edition <= 33 else 1 if edition <= 50 else 0
+        card = Card(self.names[index].capitalize(),editionrand,random.randrange(0,5),curid+1)
         await self.collect.insertcard(interaction.user.id, card.compress())
         await self.collect.setcount(self.names[index], curid+1)
         message = f"{interaction.user.mention} has grabbed {self.names[index].capitalize()}. "

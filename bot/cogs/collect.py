@@ -9,8 +9,6 @@ from utils.db import db
 from helpers.views import Buttons
 from helpers.card import Card
 
-# Credit to https://github.com/alexpetrangelo-netizen/uma-bot/
-# For Card class, Button class, and Collect Cog
 
 class Collect(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -58,11 +56,12 @@ class Collect(commands.Cog):
     @app_commands.command(name="drop",description="A drop of 3 characters!")
     async def drop(self, interaction: discord.Interaction):
 
+        identifier = str(interaction.user.id) + "," + str(interaction.guild_id)
         await db.connect()
-        retval = await db.execute("SELECT dropped_time FROM timeout WHERE user_id = $1;",interaction.user.id)
+        retval = await db.execute("SELECT dropped_time FROM timeout WHERE id = $1;",identifier)
         lastDropped = 0
         if len(retval) == 0:
-            await db.execute("INSERT INTO timeout (user_id, dropped_time) VALUES ($1, $2);",interaction.user.id,lastDropped)
+            await db.execute("INSERT INTO timeout (id, dropped_time) VALUES ($1, $2);",identifier,time.time_ns())
         else:
             lastDropped = retval[0]['dropped_time']
 
@@ -72,9 +71,9 @@ class Collect(commands.Cog):
         if seconds < 43200:
             timeRemaining = 43200-seconds
             await db.close()
-            return await interaction.response.send_message(content=f"You may drop again in {timeRemaining//3600} hours {(timeRemaining%3600)//60} minutes {round(timeRemaining%3600%60)} seconds.",ephemeral=True)
+            return await interaction.response.send_message(content=f"You may drop again in {timeRemaining//3600} hours {round((timeRemaining%3600)//60)} minutes {round(timeRemaining%3600%60)} seconds.",ephemeral=True)
         else:
-            await db.execute("UPDATE timeout SET dropped_time = $1 WHERE user_id = $2;",now,interaction.user.id)
+            await db.execute("UPDATE timeout SET dropped_time = $1 WHERE id = $2;",now,identifier)
             await db.close()
 
         await interaction.response.defer()
@@ -100,7 +99,7 @@ class Collect(commands.Cog):
             imggroup.save(image_binary, "JPEG")
             image_binary.seek(0)
             choices = [ name1, name2, name3 ]
-            view = Buttons(collect=self, names=choices)
+            view = Buttons(collect=self, names=choices, user=interaction.user)
             return await interaction.followup.send(file=discord.File(fp=image_binary, filename='image.png'), view=view)
 
 async def setup(bot: commands.Bot) -> None:

@@ -1,6 +1,6 @@
 class Card:
     edition_arr = [ "Normal","Foil","Holographic","Polychrome","Negative" ]
-    quality_arr = [ "Poor", "Decent", "Good", "Great", "Mine"]
+    quality_arr = [ "Poor", "Decent", "Good", "Great", "Mint"]
 
 
     def __init__(self, name: str, edition: int = -1, quality: int = -1, id: int = -1):

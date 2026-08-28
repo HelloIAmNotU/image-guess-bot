@@ -9,11 +9,6 @@ CREATE TABLE cardcounts (
 );
 
 CREATE TABLE timeout (
-    user_id BIGINT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     dropped_time BIGINT
-);
-
-CREATE TABLE channels (
-    server_id BIGINT PRIMARY KEY,
-    channel_id BIGINT
 );

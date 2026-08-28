@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 # MUCH CREDIT TO https://github.com/DylanHNicolay/MatchCraft,
 # from which most of the bot startup and Docker code was derived
 
+# Credit to https://github.com/alexpetrangelo-netizen/uma-bot/
+# For Card class, Button class, and Collect Cog
+
 # Load environment variables from .env file
 load_dotenv()
 

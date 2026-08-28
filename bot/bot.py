@@ -23,6 +23,7 @@ class MyClient(commands.Bot):
 
     async def setup_hook(self) -> None:
         await self.load_extension("cogs.game")
+        await self.load_extension("cogs.collect")
         await self.load_extension("cogs.botHelp")
         if GUILD_ID and GUILD_ID.isdigit():
             guild=discord.Object(id=int(GUILD_ID))  
@@ -34,8 +35,6 @@ class MyClient(commands.Bot):
     async def on_ready(self) -> None:
         print(f'Logged in as {self.user} (ID: {self.user.id})') # type: ignore
         print('------')
-
-
 
 
 client = MyClient(intents=intents)

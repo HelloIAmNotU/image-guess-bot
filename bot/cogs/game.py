@@ -12,6 +12,9 @@ class Game(commands.Cog):
         self.images = {}
         self.game = True
 
+    def getImages(self) -> dict[str,str]:
+        return self.images
+
     @app_commands.command(name="setchannel",description="ADMIN ONLY: Sets the image-containing channel")
     async def setchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not interaction.user.guild_permissions.administrator:
@@ -34,19 +37,6 @@ class Game(commands.Cog):
         except:
             return await interaction.followup.send(content="Command failed.")
 
-    """
-    @app_commands.command(name="test",description="test command")
-    async def test(self, interaction: discord.Interaction):
-        choice = random.choice(list(self.images.keys()))
-        response = requests.get(self.images[choice])
-        image = Image.open(io.BytesIO(response.content))
-
-        with io.BytesIO() as image_binary:
-            image.save(image_binary,"JPEG")
-            image_binary.seek(0)
-            return await interaction.response.send_message(file=discord.File(fp=image_binary,filename='image.jpeg'))
-    """
-
     @app_commands.command(name="ready",description="ADMIN ONLY: Allows the bot to start a game")
     async def ready(self, interaction: discord.Interaction):
         self.game = False
@@ -61,7 +51,7 @@ class Game(commands.Cog):
     async def start(self, interaction: discord.Interaction, rounds: int):
         if self.game:
             return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
-        await interaction.response.defer()
+        await interaction.response.send_message()
         correct = {}
         self.game = True
         for i in range(rounds):
@@ -72,11 +62,11 @@ class Game(commands.Cog):
             with io.BytesIO() as image_binary:
                 image.save(image_binary,"JPEG")
                 image_binary.seek(0)
-                await interaction.followup.send(content="What is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
+                await interaction.channel.send(content="What is this?",file=discord.File(fp=image_binary,filename='image.jpeg'))
 
             while True:
                 try:
-                    user_reply = await self.bot.wait_for('message',timeout=10)
+                    user_reply = await self.bot.wait_for('message',timeout=15)
                 except asyncio.TimeoutError:
                     await interaction.channel.send(content=f"Question timed out. The answer was {choice}.")
                     break
@@ -84,14 +74,14 @@ class Game(commands.Cog):
                     if user_reply.author.guild_permissions.administrator:
                         if user_reply.content.lower() == "end":
                             self.game = True
-                            return await interaction.followup.send(content="Game terminated. Admin must run /ready to restart.")
+                            return await interaction.channel.send(content="Game terminated. Admin must run /ready to restart.")
                         elif user_reply.content.lower() == "next":
-                            await interaction.followup.send(content=f"Going next. The answer was {choice}.")
+                            await interaction.channel.send(content=f"Going next. The answer was {choice}.")
                             time.sleep(1)
                             break
                     if user_reply.content.lower() == choice:
                         mention = user_reply.author.mention
-                        await interaction.followup.send(content=f"{mention} got it right!")
+                        await interaction.channel.send(content=f"{mention} got it right!")
                         if (mention not in list(correct.keys())):
                             correct[mention] = 1
                         else:

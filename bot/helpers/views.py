@@ -1,5 +1,5 @@
 import discord
-import random, time
+import random
 
 from helpers.card import Card
 
@@ -32,6 +32,7 @@ class Buttons(discord.ui.View):
         if card.edition != 0:
             message += f"\nWow! Your card has a {card.edition_arr[card.edition]} edition!"
         await interaction.channel.send(content=message)
+        self.stop()
         return await self.msg.delete()
 
     @discord.ui.button(label="1",style=discord.ButtonStyle.blurple)

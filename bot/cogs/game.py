@@ -51,7 +51,9 @@ class Game(commands.Cog):
     async def start(self, interaction: discord.Interaction, rounds: int):
         if self.game:
             return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
-        await interaction.response.send_message()
+
+        await interaction.response.send_message("Race starting now!")
+
         correct = {}
         self.game = True
         for i in range(rounds):

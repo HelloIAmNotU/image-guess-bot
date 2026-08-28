@@ -67,15 +67,11 @@ class Collect(commands.Cog):
             lastDropped = retval[0]['dropped_time']
         await db.close()
 
-        timeRemaining = 43200-((now-lastDropped)/1000000000)
+        timeRemaining = 18000-((now-lastDropped)/1000000000)
 
         if timeRemaining > 0:
             return await interaction.response.send_message(content=f"You may drop again in {int(timeRemaining//3600)} hours {int((timeRemaining%3600)//60)} minutes {int(timeRemaining%3600%60)} seconds.",ephemeral=True)
-        else:
-            await db.connect()
-            await db.execute("UPDATE timeout SET dropped_time = $1 WHERE user_id = $2;",now,interaction.user.id)
-            await db.close()
-
+            
         await interaction.response.defer()
 
         name1 = random.choice(list(self.images.keys()))
@@ -94,6 +90,10 @@ class Collect(commands.Cog):
         imggroup.paste(image1, (0, 0))
         imggroup.paste(image2, (x1+20, 0))
         imggroup.paste(image3, (x1+x2+40, 0))
+
+        await db.connect()
+        await db.execute("UPDATE timeout SET dropped_time = $1 WHERE user_id = $2;",now,interaction.user.id)
+        await db.close()
 
         with io.BytesIO() as image_binary:
             imggroup.save(image_binary, "JPEG")

@@ -19,7 +19,8 @@ class Game(commands.Cog):
     async def setchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(content="This command is reserved for administrators",ephemeral=True)
-        
+
+        self.images = {}
         await interaction.response.defer(ephemeral=True)
         count = 0
 
@@ -33,6 +34,9 @@ class Game(commands.Cog):
                     answer = message.attachments[i].filename.lower().replace("_"," ").removesuffix(".jpeg")
                     self.images[answer] = message.attachments[i].url
                     count += 1
+
+            collectCog = self.bot.get_cog("Collect")
+            collectCog.setImages(self.images)
             return await interaction.followup.send(content=f"{count} images added!")
         except:
             return await interaction.followup.send(content="Command failed.")

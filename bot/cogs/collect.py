@@ -13,11 +13,10 @@ from helpers.card import Card
 class Collect(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.gameCog = bot.get_cog("Game")
         self.images = {}
 
-    async def cog_load(self) -> None:
-        self.images = self.gameCog.getImages()
+    def setImages(self, images: dict[str,str]) -> None:
+        self.images = images
 
     async def insertcard(self, userid: int, card: str):
         await db.connect()
@@ -40,6 +39,19 @@ class Collect(commands.Cog):
             await db.execute("UPDATE cardcounts SET cardnum = $1 WHERE cardname = $2;",num,name)
         await db.close()
 
+    @app_commands.command(name="info",description="See an image of a card")
+    async def info(self, interaction: discord.Interaction, name: str):
+        name = name.lower()
+        if name not in (self.images.keys()):
+            return await interaction.response.send_message(content="That is not a valid name",ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+        image = Image.open(io.BytesIO(requests.get(self.images[name]).content))
+        with io.BytesIO() as image_binary:
+            image.save(image_binary,"JPEG")
+            image_binary.seek(0)
+            await interaction.followup.send(content=f"Here is {name.capitalize()}:",file=discord.File(fp=image_binary,filename='image.jpeg'))
+
     @app_commands.command(name="collection",description="Gets the collection of a user (self if not specified)")
     async def collection(self, interaction: discord.Interaction, user: discord.Member = None):
         if user == None:
@@ -56,6 +68,9 @@ class Collect(commands.Cog):
     @app_commands.command(name="drop",description="A drop of 3 characters!")
     async def drop(self, interaction: discord.Interaction):
 
+        if len(self.images) == 0:
+            return await interaction.response.send_message(content="You may not drop yet; the bot is not ready",ephemeral=True)
+
         lastDropped = 0
         now = time.time_ns()
 
@@ -67,7 +82,7 @@ class Collect(commands.Cog):
             lastDropped = retval[0]['dropped_time']
         await db.close()
 
-        timeRemaining = 18000-((now-lastDropped)/1000000000)
+        timeRemaining = 36000-((now-lastDropped)/1000000000)
 
         if timeRemaining > 0:
             return await interaction.response.send_message(content=f"You may drop again in {int(timeRemaining//3600)} hours {int((timeRemaining%3600)//60)} minutes {int(timeRemaining%3600%60)} seconds.",ephemeral=True)

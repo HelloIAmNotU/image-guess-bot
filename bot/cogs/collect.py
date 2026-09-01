@@ -39,10 +39,19 @@ class Collect(commands.Cog):
             await db.execute("UPDATE cardcounts SET cardnum = $1 WHERE cardname = $2;",num,name)
         await db.close()
 
+    async def getCards(self, user: discord.Member):
+        await db.connect()
+        retval = await db.execute("SELECT card_id FROM cards WHERE user_id = $1;",user.id)
+        await db.close()
+        return retval
+
     @app_commands.command(name="info",description="See an image of a card")
     async def info(self, interaction: discord.Interaction, name: str):
+        if len(self.images) == 0:
+            return await interaction.response.send_message(content="The bot is not ready",ephemeral=True)
+
         name = name.lower()
-        if name not in (self.images.keys()):
+        if name not in list(self.images.keys()):
             return await interaction.response.send_message(content="That is not a valid name",ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
@@ -56,9 +65,7 @@ class Collect(commands.Cog):
     async def collection(self, interaction: discord.Interaction, user: discord.Member = None):
         if user == None:
             user = interaction.user
-        await db.connect()
-        retval = await db.execute("SELECT card_id FROM cards WHERE user_id = $1;",user.id)
-        await db.close()
+        retval = await self.getCards(user)
         msg = f"{user.mention}'s cards:\n"
         for row in retval:
             msg += ((Card(row[0]).toString())+"\n")

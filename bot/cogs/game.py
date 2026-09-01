@@ -37,6 +37,10 @@ class Game(commands.Cog):
 
             collectCog = self.bot.get_cog("Collect")
             collectCog.setImages(self.images)
+            tradeCog = self.bot.get_cog("Trade")
+            tradeCog.setImages(self.images)
+            self.game = False
+            
             return await interaction.followup.send(content=f"{count} images added!")
         except:
             return await interaction.followup.send(content="Command failed.")
@@ -53,7 +57,7 @@ class Game(commands.Cog):
 
     @app_commands.command(name="start",description="Starts the game. Admin can type 'end' to force stop")
     async def start(self, interaction: discord.Interaction, rounds: int):
-        if self.game:
+        if self.game or len(self.images) == 0:
             return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
 
         await interaction.response.send_message("Race starting now!")

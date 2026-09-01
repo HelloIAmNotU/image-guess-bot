@@ -27,6 +27,7 @@ class MyClient(commands.Bot):
     async def setup_hook(self) -> None:
         await self.load_extension("cogs.game")
         await self.load_extension("cogs.collect")
+        await self.load_extension("cogs.trade")
         await self.load_extension("cogs.botHelp")
         if GUILD_ID and GUILD_ID.isdigit():
             guild=discord.Object(id=int(GUILD_ID))  

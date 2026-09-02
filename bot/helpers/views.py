@@ -123,10 +123,8 @@ class TradeView(discord.ui.LayoutView):
         
 
     async def cancel(self):
-        await self.msg.channel.send(content=f"The trade between {self.initiator.mention} and {self.recipient.mention} has been cancelled.")
-        self.trade.remove(self.initiator)
-        self.trade.remove(self.recipient)
-        return await self.msg.delete()
+        await self.trade.complete(self.initiator, [] , self.recipient, [])
+        return await self.msg.edit(view=EmbedView(myText=f"The trade between {self.initiator.mention} and {self.recipient.mention} has been cancelled."))
 
 class MyActionRow(discord.ui.ActionRow):
     def __init__(self, trade: TradeView) -> None:
@@ -147,3 +145,23 @@ class MyActionRow(discord.ui.ActionRow):
             return await interaction.response.send_message(content="You are not part of this trade",ephemeral=True)
         await interaction.response.send_message(content="Success",ephemeral=True,delete_after=1)
         return await self.trade.cancel()
+
+class DropDownActionRow(discord.ui.ActionRow):
+    def __init__(self, dropdownView) -> None:
+        super().__init__()
+        self.dropdownView = dropdownView
+
+    @discord.ui.button(label='Back', style=discord.ButtonStyle.blurple)
+    async def back(self, interaction: discord.Interaction, button: discord.Button):
+        if interaction.user != self.dropdownView.user:
+            return await interaction.response.send_message(content="This is not your dropdown",ephemeral=True)
+        await self.dropdownView.update(False)
+        return await interaction.response.send_message(content="Success",ephemeral=True,delete_after=1)
+
+    #Removes the player from the queue when they press the remove button
+    @discord.ui.button(label='Next',style=discord.ButtonStyle.blurple)
+    async def next(self, interaction: discord.Interaction, button: discord.Button):
+        if interaction.user != self.dropdownView.user:
+            return await interaction.response.send_message(content="This is not your dropdown",ephemeral=True)
+        await self.dropdownView.update(True)
+        return await interaction.response.send_message(content="Success",ephemeral=True,delete_after=1)

@@ -71,8 +71,8 @@ class Collect(commands.Cog):
             msg += ((Card(row[0]).toString())+"\n")
         await interaction.response.send_message(content=msg,ephemeral=True)
         
-    #picks three random characters and displays them for choosing
-    @app_commands.command(name="drop",description="A drop of 3 characters!")
+    #picks three random images and displays them for choosing
+    @app_commands.command(name="drop",description="A drop of 3 images!")
     async def drop(self, interaction: discord.Interaction):
 
         if len(self.images) == 0:

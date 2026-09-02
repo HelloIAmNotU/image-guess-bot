@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from utils.db import db
-from helpers.views import EmbedView, TradeView
+from helpers.views import EmbedView, TradeView, DropDownActionRow
 from helpers.card import Card
 
 # TODO: 
@@ -12,6 +12,9 @@ from helpers.card import Card
 # MAYBE MAKE BUTTONS TO ACCEPT/REJECT TRADE ON THE TRADE MESSAGE?
 
 class Trade(commands.Cog):
+
+    group = app_commands.Group(name="request",description="Relating to trading")
+
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.collectCog = bot.get_cog("Collect")
@@ -33,7 +36,9 @@ class Trade(commands.Cog):
         await db.close()
 
         await (self.tradeDict[init]).delete()
-        return await (self.tradeDict[reci]).delete()
+        await (self.tradeDict[reci]).delete()
+        del self.tradeDict[init]
+        del self.tradeDict[reci]
 
     @app_commands.command(name="trade",description="Start a trade with a given user")
     async def trade(self, interaction: discord.Interaction, user: discord.Member):
@@ -46,17 +51,16 @@ class Trade(commands.Cog):
         if user in list(self.tradeDict.keys()):
             return await interaction.response.send_message(content="That user has an ongoing trade request",ephemeral=True)
 
+        await interaction.response.defer(ephemeral=True)
         msg = await interaction.channel.send(view=EmbedView(myText=f"{user.mention}, {interaction.user.mention} wants to trade! Use '/accept' or '/reject'."))
         self.tradeDict[interaction.user] = [ msg, user ]
         self.tradeDict[user] = interaction.user
-        return await interaction.response.send_message(content="Trade request sent!",ephemeral=True)
+        return await interaction.followup.send(content="Trade request sent!",ephemeral=True)
 
-    @app_commands.command(name="cancel",description="Cancel an outgoing trade request")
+    @group.command(name="cancel",description="Cancel an outgoing trade request")
     async def cancel(self, interaction: discord.Interaction):
-        if interaction.user not in list(self.tradeDict.keys()):
-            return await interaction.response.send_message(content="You do not have an incoming trade request",ephemeral=True)
-        if not isinstance(self.tradeDict[interaction.user],list):
-            return await interaction.response.send_message(content="You are already in a trade!",ephemeral=True)
+        if (interaction.user not in list(self.tradeDict.keys())) or (not isinstance(self.tradeDict[interaction.user],list)):
+            return await interaction.response.send_message(content="You do not have an outgoing trade request",ephemeral=True)
 
         msg = (self.tradeDict[interaction.user])[0]
         recipient = (self.tradeDict[interaction.user])[1]
@@ -66,13 +70,11 @@ class Trade(commands.Cog):
         await msg.edit(view=EmbedView(myText=f"{interaction.user.mention} has cancelled their trade request"))
         return await interaction.response.send_message(content="You have cancelled your trade",ephemeral=True)
 
-    @app_commands.command(name="reject",description="Reject an incoming trade request")
+    @group.command(name="reject",description="Reject an incoming trade request")
     async def reject(self, interaction: discord.Interaction):
-        if interaction.user not in list(self.tradeDict.keys()):
+        if (interaction.user not in list(self.tradeDict.keys())) or (not isinstance(self.tradeDict[interaction.user],discord.Member)):
             return await interaction.response.send_message(content="You do not have an incoming trade request",ephemeral=True)
-        if not isinstance(self.tradeDict[interaction.user],discord.Member):
-            return await interaction.response.send_message(content="You are already in a trade!",ephemeral=True)
-
+        
         initiator = self.tradeDict[interaction.user]
         del self.tradeDict[interaction.user]
         msg = (self.tradeDict[initiator])[0]
@@ -81,12 +83,10 @@ class Trade(commands.Cog):
         await msg.edit(view=EmbedView(myText=f"{initiator}'s trade quest has been rejected."))
         return await interaction.response.send_message(content=f"You have rejected {initiator.mention}'s trade request",ephemeral=True)
         
-    @app_commands.command(name="accept",description="Accept an incoming trade request")
+    @group.command(name="accept",description="Accept an incoming trade request")
     async def accept(self, interaction: discord.Interaction):
-        if interaction.user not in list(self.tradeDict.keys()):
+        if (interaction.user not in list(self.tradeDict.keys())) or (not isinstance(self.tradeDict[interaction.user],discord.Member)):
             return await interaction.response.send_message(content="You do not have an incoming trade request",ephemeral=True)
-        if not isinstance(self.tradeDict[interaction.user],discord.Member):
-            return await interaction.response.send_message(content="You are already in a trade!",ephemeral=True)
 
         await interaction.response.send_message(content="Trade accepted!",ephemeral=True)
         initiator = self.tradeDict[interaction.user]
@@ -106,23 +106,48 @@ class Trade(commands.Cog):
                     return await interaction.response.send_message(content="This is not your trade menu.",ephemeral=True)
 
                 await tradeview.addCard(interaction.user == initiator,self.values[0])
-                return await interaction.response.send_message(content="Success!",ephemeral=True,delete_after=1)
+                await interaction.response.send_message(content="Success!",ephemeral=True,delete_after=1)
+                self.values.clear()
+                return await self.parent.parent.view.restartDropdown()
 
         class DropdownView(discord.ui.LayoutView):
-            def __init__(self, user: discord.Member, options) -> None:
+            def __init__(self, tradeCog, user: discord.Member, options, start: int) -> None:
                 super().__init__(timeout=180)
                 self.user = user
-                self.text = discord.ui.TextDisplay(f"{user.mention}'s Dropdown")
+                self.tradeCog = tradeCog
+                self.options = options
+                self.start = start
+                self.text = discord.ui.TextDisplay(f"{user.mention}'s Dropdown (A maximum 25 cards are shown; use buttons to see the rest)")
                 self.dropdownView = discord.ui.ActionRow(Dropdown())
-                for i in range(min(25,len(options))):
+                for i in range(start, min(start+25,len(options)-start)):
                     self.dropdownView.children[0].add_option(label=Card(options[i][0]).toString(),value=options[i][0])
-                container = discord.ui.Container(self.text,self.dropdownView)
-                self.add_item(container)
+                self.actionrow = DropDownActionRow(self)
+                self.container = discord.ui.Container(self.text,self.dropdownView,self.actionrow)
+                self.add_item(self.container)
+
+            async def restartDropdown(self):
+                self.remove_item(self.container)
+                self.container = discord.ui.Container(self.text,self.dropdownView,self.actionrow)
+                self.add_item(self.container)
+                return await (self.tradeCog.tradeDict[self.user]).edit(view=self)
+
+            async def update(self, next: bool):
+                if (not next) and (self.start == 0):
+                    return
+                if next and (len(self.options) <= 25+self.start):
+                    return
+                self.start += (25 if next else -25)
+
+                self.dropdownView = discord.ui.ActionRow(Dropdown())
+                for i in range(self.start, min(self.start+25,len(self.options)-self.start)):
+                    self.dropdownView.children[0].add_option(label=Card(self.options[i][0]).toString(),value=self.options[i][0])
+                self.actionrow = DropDownActionRow(self)
+                return await self.restartDropdown()
 
         initCards = await self.collectCog.getCards(initiator)
         reciCards = await self.collectCog.getCards(interaction.user)
-        initDrop = await interaction.channel.send(view=DropdownView(initiator,initCards))
-        reciDrop = await interaction.channel.send(view=DropdownView(interaction.user,reciCards))
+        initDrop = await interaction.channel.send(view=DropdownView(self,initiator,initCards,0))
+        reciDrop = await interaction.channel.send(view=DropdownView(self,interaction.user,reciCards,0))
 
         self.tradeDict[initiator] = initDrop
         self.tradeDict[interaction.user] = reciDrop

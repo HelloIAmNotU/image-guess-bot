@@ -7,6 +7,8 @@ import requests
 
 class Game(commands.Cog):
 
+    group = app_commands.Group(name="race",description="Relating to the racing game")
+
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.images = {}
@@ -45,21 +47,22 @@ class Game(commands.Cog):
         except:
             return await interaction.followup.send(content="Command failed.")
 
-    @app_commands.command(name="ready",description="ADMIN ONLY: Allows the bot to start a game")
+    @group.command(name="ready",description="ADMIN ONLY: Allows the bot to start a game")
     async def ready(self, interaction: discord.Interaction):
         self.game = False
         return await interaction.response.send_message(content="Success!",ephemeral=True)
 
-    @app_commands.command(name="stop",description="ADMIN ONLY: Stops the bot from starting a game")
+    @group.command(name="stop",description="ADMIN ONLY: Stops the bot from starting a game")
     async def stop(self, interaction: discord.Interaction):
         self.game = True
         return await interaction.response.send_message(content="Success!",ephemeral=True)
 
-    @app_commands.command(name="start",description="Starts the game. Admin can type 'end' to force stop")
+    @group.command(name="start",description="Starts the game. Admin can type 'end' to force stop")
     async def start(self, interaction: discord.Interaction, rounds: int):
         if self.game or len(self.images) == 0:
             return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
-
+        if rounds == 0:
+            return await interaction.response.send_message(content="You cannot play a game with 0 rounds",ephemeral=True)
         await interaction.response.send_message("Race starting now!")
 
         correct = {}

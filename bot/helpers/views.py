@@ -123,7 +123,7 @@ class TradeView(discord.ui.LayoutView):
         
 
     async def cancel(self):
-        await self.trade.complete(self.initiator, [] , self.recipient, [])
+        await self.trade.deleteMsg(self.initiator,self.recipient)
         return await self.msg.edit(view=EmbedView(myText=f"The trade between {self.initiator.mention} and {self.recipient.mention} has been cancelled."))
 
 class MyActionRow(discord.ui.ActionRow):

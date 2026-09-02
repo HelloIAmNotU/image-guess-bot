@@ -27,6 +27,12 @@ class Trade(commands.Cog):
     def remove(self, user: discord.Member):
         del self.tradeDict[user]
 
+    async def deleteMsg(self, init: discord.Member, reci: discord.Member):
+        await (self.tradeDict[init]).delete()
+        await (self.tradeDict[reci]).delete()
+        del self.tradeDict[init]
+        del self.tradeDict[reci]
+
     async def complete(self, init: discord.Member, initList: list[str], reci: discord.Member, reciList: list[str]):
         await db.connect()
         for str in initList:
@@ -35,10 +41,7 @@ class Trade(commands.Cog):
             await db.execute("UPDATE cards SET user_id = $1 WHERE card_id = $2;",init.id,str)
         await db.close()
 
-        await (self.tradeDict[init]).delete()
-        await (self.tradeDict[reci]).delete()
-        del self.tradeDict[init]
-        del self.tradeDict[reci]
+        await self.deleteMsg(init,reci)
 
     @app_commands.command(name="trade",description="Start a trade with a given user")
     async def trade(self, interaction: discord.Interaction, user: discord.Member):

@@ -5,6 +5,8 @@ from discord.ext import commands
 from PIL import Image
 import requests
 
+from utils.db import db
+
 class Game(commands.Cog):
 
     group = app_commands.Group(name="race",description="Relating to the racing game")
@@ -12,37 +14,61 @@ class Game(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.images = {}
-        self.game = True
+        self.collectCog = bot.get_cog("Collect")
+        self.tradeCog = bot.get_cog("Trade")
+        self.game = False
 
-    def getImages(self) -> dict[str,str]:
-        return self.images
+    async def cog_load(self) -> None:
+        await db.connect()
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS servers (
+        guild_id BIGINT PRIMARY KEY,
+        channel_id BIGINT
+        );
+        """)
+        servers = await db.execute("SELECT * FROM servers;")
+        await db.close()
+        for thing in servers:
+            await self.setImages(thing['guild_id'],thing['channel_id'])
+
+
+    async def setImages(self, guild_id: int, channel_id: int) -> int:
+        guild = await self.bot.fetch_guild(guild_id)
+        channel = await guild.fetch_channel(channel_id)
+        count = 0
+
+        self.images[guild_id] = {}
+        async for message in channel.history(limit=500):
+            if len(message.attachments) < 1:
+                continue
+            for i in range(len(message.attachments)):
+                if not message.attachments[i].filename.lower().endswith(".jpeg"):
+                    continue
+                answer = message.attachments[i].filename.lower().replace("_"," ").removesuffix(".jpeg")
+                self.images[guild_id].update({answer : message.attachments[i].url})
+                count += 1
+
+        self.collectCog.setImages(self.images)
+        self.tradeCog.setImages(self.images)
+
+        return count
+
 
     @app_commands.command(name="setchannel",description="ADMIN ONLY: Sets the image-containing channel")
     async def setchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(content="This command is reserved for administrators",ephemeral=True)
 
-        self.images = {}
         await interaction.response.defer(ephemeral=True)
-        count = 0
 
         try:
-            async for message in channel.history(limit=500):
-                if len(message.attachments) < 1:
-                    continue
-                for i in range(len(message.attachments)):
-                    if not message.attachments[i].filename.lower().endswith(".jpeg"):
-                        continue
-                    answer = message.attachments[i].filename.lower().replace("_"," ").removesuffix(".jpeg")
-                    self.images[answer] = message.attachments[i].url
-                    count += 1
-
-            collectCog = self.bot.get_cog("Collect")
-            collectCog.setImages(self.images)
-            tradeCog = self.bot.get_cog("Trade")
-            tradeCog.setImages(self.images)
-            self.game = False
-            
+            await db.connect()
+            if interaction.guild_id in list(self.images.keys()):
+                await db.execute("UPDATE servers SET channel_id = $1 WHERE guild_id = $2;",channel.id,interaction.guild_id)
+            else:
+                await db.execute("INSERT INTO servers (guild_id, channel_id) VALUES ($1, $2)",interaction.guild_id,channel.id)
+            await db.close()
+            count = await self.setImages(interaction.guild_id, channel.id)
             return await interaction.followup.send(content=f"{count} images added!")
         except:
             return await interaction.followup.send(content="Command failed.")
@@ -59,7 +85,7 @@ class Game(commands.Cog):
 
     @group.command(name="start",description="Starts the game. Admin can type 'end' to force stop")
     async def start(self, interaction: discord.Interaction, rounds: int):
-        if self.game or len(self.images) == 0:
+        if self.game or interaction.guild_id not in list(self.images.keys()):
             return await interaction.response.send_message(content="A game cannot be started right now.",ephemeral=True)
         if rounds == 0:
             return await interaction.response.send_message(content="You cannot play a game with 0 rounds",ephemeral=True)
@@ -68,8 +94,8 @@ class Game(commands.Cog):
         correct = {}
         self.game = True
         for i in range(rounds):
-            choice = random.choice(list(self.images.keys()))
-            response = requests.get(self.images[choice])
+            choice = random.choice(list((self.images[interaction.guild_id]).keys()))
+            response = requests.get((self.images[interaction.guild_id])[choice])
             image = Image.open(io.BytesIO(response.content))
     
             with io.BytesIO() as image_binary:

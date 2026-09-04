@@ -45,7 +45,7 @@ class Trade(commands.Cog):
 
     @app_commands.command(name="trade",description="Start a trade with a given user")
     async def trade(self, interaction: discord.Interaction, user: discord.Member):
-        if len(self.images) == 0:
+        if interaction.guild_id not in list(self.images.keys()):
             return await interaction.response.send_message(content="The bot is not ready",ephemeral=True)
         if user == interaction.user or user.bot:
             return await interaction.response.send_message(content="You cannot trade with that user",ephemeral=True)

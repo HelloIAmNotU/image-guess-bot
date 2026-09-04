@@ -47,15 +47,15 @@ class Collect(commands.Cog):
 
     @app_commands.command(name="info",description="See an image of a card")
     async def info(self, interaction: discord.Interaction, name: str):
-        if len(self.images) == 0:
+        if interaction.guild_id not in list(self.images.keys()):
             return await interaction.response.send_message(content="The bot is not ready",ephemeral=True)
 
         name = name.lower()
-        if name not in list(self.images.keys()):
+        if name not in list((self.images[interaction.guild_id]).keys()):
             return await interaction.response.send_message(content="That is not a valid name",ephemeral=True)
 
         await interaction.response.defer(ephemeral=True)
-        image = Image.open(io.BytesIO(requests.get(self.images[name]).content))
+        image = Image.open(io.BytesIO(requests.get((self.images[interaction.guild_id])[name]).content))
         with io.BytesIO() as image_binary:
             image.save(image_binary,"JPEG")
             image_binary.seek(0)
@@ -75,7 +75,7 @@ class Collect(commands.Cog):
     @app_commands.command(name="drop",description="A drop of 3 images!")
     async def drop(self, interaction: discord.Interaction):
 
-        if len(self.images) == 0:
+        if interaction.guild_id not in list(self.images.keys()):
             return await interaction.response.send_message(content="You may not drop yet; the bot is not ready",ephemeral=True)
 
         lastDropped = 0
@@ -96,13 +96,13 @@ class Collect(commands.Cog):
             
         await interaction.response.defer()
 
-        name1 = random.choice(list(self.images.keys()))
-        name2 = random.choice(list(self.images.keys()))
-        name3 = random.choice(list(self.images.keys()))
+        name1 = random.choice(list((self.images[interaction.guild_id]).keys()))
+        name2 = random.choice(list((self.images[interaction.guild_id]).keys()))
+        name3 = random.choice(list((self.images[interaction.guild_id]).keys()))
 
-        image1 = Image.open(io.BytesIO(requests.get(self.images[name1]).content))
-        image2 = Image.open(io.BytesIO(requests.get(self.images[name2]).content))
-        image3 = Image.open(io.BytesIO(requests.get(self.images[name3]).content))
+        image1 = Image.open(io.BytesIO(requests.get((self.images[interaction.guild_id])[name1]).content))
+        image2 = Image.open(io.BytesIO(requests.get((self.images[interaction.guild_id])[name2]).content))
+        image3 = Image.open(io.BytesIO(requests.get((self.images[interaction.guild_id])[name3]).content))
 
         x1,y1 = image1.size
         x2,y2 = image2.size

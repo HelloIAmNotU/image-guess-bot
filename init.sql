@@ -12,3 +12,8 @@ CREATE TABLE timeout (
     user_id BIGINT PRIMARY KEY,
     dropped_time BIGINT
 );
+
+CREATE TABLE servers (
+    guild_id BIGINT PRIMARY KEY,
+    channel_id BIGINT
+);

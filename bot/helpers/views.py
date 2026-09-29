@@ -21,7 +21,7 @@ class Buttons(discord.ui.View):
             return await interaction.response.send_message(content="This is not your drop.",ephemeral=True)
         curid = await self.collect.cardcount(self.names[index])
         edition = random.randrange(0,200)
-        editionrand = 4 if edition == 0 else 3 if edition <= 17 else 2 if edition <= 33 else 1 if edition <= 50 else 0
+        editionrand = 4 if edition == 0 else 3 if edition <= 9 else 2 if edition <= 25 else 1 if edition <= 50 else 0
         card = Card(self.names[index].capitalize(),editionrand,random.randrange(0,5),curid+1)
         await self.collect.insertcard(interaction.user.id,card.compress())
         await self.collect.setcount(self.names[index],curid+1)

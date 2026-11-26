@@ -73,10 +73,12 @@ class Collect(commands.Cog):
         count = len(f"{user.mention}'s cards:\n")
         index = 0
         full_msg = []
+        full_msg.append("")
         full_msg[0] = f"{user.mention}'s cards:\n"
         for row in retval:
             card_str = (Card(row[0]).toString())+"\n"
             if len(full_msg[index])+len(card_str) > 2000:
+                full_msg.append("")
                 index += 1
             full_msg[index] += card_str
 

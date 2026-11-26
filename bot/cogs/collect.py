@@ -66,11 +66,22 @@ class Collect(commands.Cog):
     async def collection(self, interaction: discord.Interaction, user: discord.Member = None):
         if user == None:
             user = interaction.user
+
+        await interaction.response.defer()
+
         retval = await self.getCards(user)
-        msg = f"{user.mention}'s cards:\n"
+        count = len(f"{user.mention}'s cards:\n")
+        index = 0
+        full_msg = []
+        full_msg[0] = f"{user.mention}'s cards:\n"
         for row in retval:
-            msg += ((Card(row[0]).toString())+"\n")
-        await interaction.response.send_message(content=msg,ephemeral=True)
+            card_str = (Card(row[0]).toString())+"\n"
+            if len(full_msg[index])+len(card_str) > 2000:
+                index += 1
+            full_msg[index] += card_str
+
+        for msg in full_msg:
+            await interaction.followup.send(content=msg,ephemeral=True)
         
     #picks three random images and displays them for choosing
     @app_commands.command(name="drop",description="A drop of 3 images!")

@@ -81,6 +81,7 @@ class Collect(commands.Cog):
         self.commanded_already.append(interaction.user.id)
 
         if interaction.guild_id not in list(self.images.keys()):
+            self.commanded_already.remove(interaction.user.id)
             return await interaction.response.send_message(content="You may not drop yet; the bot is not ready",ephemeral=True)
 
         lastDropped = 0

@@ -67,7 +67,7 @@ class Collect(commands.Cog):
         if user == None:
             user = interaction.user
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         retval = await self.getCards(user)
         count = len(f"{user.mention}'s cards:\n")

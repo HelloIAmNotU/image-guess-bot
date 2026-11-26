@@ -14,6 +14,7 @@ class Collect(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.images = {}
+        self.commanded_already = []
 
     def setImages(self, images: dict[str,str]) -> None:
         self.images = images
@@ -74,6 +75,10 @@ class Collect(commands.Cog):
     #picks three random images and displays them for choosing
     @app_commands.command(name="drop",description="A drop of 3 images!")
     async def drop(self, interaction: discord.Interaction):
+        if interaction.user.id in self.commanded_already:
+            return await interaction.response.send_message(content="Please wait. The bot is dropping.",ephemeral=True)
+        
+        self.commanded_already.append(interaction.user.id)
 
         if interaction.guild_id not in list(self.images.keys()):
             return await interaction.response.send_message(content="You may not drop yet; the bot is not ready",ephemeral=True)
@@ -90,6 +95,7 @@ class Collect(commands.Cog):
         await db.close()
 
         timeRemaining = 36000-((now-lastDropped)/1000000000)
+        self.commanded_already.remove(interaction.user.id)
 
         if timeRemaining > 0:
             return await interaction.response.send_message(content=f"You may drop again in {int(timeRemaining//3600)} hours {int((timeRemaining%3600)//60)} minutes {int(timeRemaining%3600%60)} seconds.",ephemeral=True)
